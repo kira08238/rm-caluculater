@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>RM  | 筋トレ1RM計算機</title>
+	<style>
+		* { box-sizing: border-box; }
+		body {
+			margin: 0;
+			padding: 30px 16px;
+			background: #101114;
+			color: #fff;
+			font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+		}
+		.container { max-width: 480px; margin: 0 auto; }
+		header { text-align: center; margin-bottom: 30px; }
+		h1 { font-size: 30px; margin-bottom: 8px; letter-spacing: 1px; }
+		.subtitle { color: #999; font-size: 14px; }
+		.card {
+			background: #1c1e23;
+			padding: 24px;
+			border-radius: 18px;
+			margin-bottom: 18px;
+			border: 1px solid #303239;
+		}
+		label { display: block; margin-bottom: 10px; font-size: 14px; color: #c8c8c8; }
+		select, input {
+			width: 100%;
+			padding: 14px;
+			background: #101114;
+			color: #fff;
+			border: 1px solid #41434b;
+			border-radius: 10px;
+			font-size: 16px;
+			margin-bottom: 20px;
+		}
+		input:focus, select:focus { outline: 2px solid #a3e635; border-color: transparent; }
+		button {
+			width: 100%;
+			padding: 15px;
+			background: #a3e635;
+			color: #101114;
+			font-size: 17px;
+			font-weight: bold;
+			border: none;
+			border-radius: 10px;
+			cursor: pointer;
+		}
+		button:hover { background: #bef264; }
+		.result { text-align: center; padding: 25px 10px; }
+		.result-label { color: #a3e635; font-size: 14px; font-weight: bold; }
+		.result-number { font-size: 54px; font-weight: 800; margin: 12px 0; overflow-wrap: anywhere; }
+		.unit { font-size: 20px; color: #b5b5b5; }
+		.detail { color: #a7a7a7; font-size: 14px; }
+		h2 { font-size: 18px; margin-top: 0; margin-bottom: 18px; }
+		.percentage-row {
+			display: flex;
+			justify-content: space-between;
+			padding: 12px 0;
+			border-bottom: 1px solid #34363c;
+			font-size: 15px;
+		}
+		.percentage-row:last-child { border-bottom: none; }
+		.percentage-row strong { color: #a3e635; }
+		.error { color: #ff7777; font-size: 14px; margin-top: 14px; display: none; }
+		footer { text-align: center; color: #777; font-size: 12px; line-height: 1.8; margin-top: 24px; }
+	</style>
+</head>
+<body>
+	<main class="container">
+		<header>
+			<h1>弱いやつ専用</h1>
+			<p class="subtitle">Calculate your strength.</p>
+		</header>
+
+		<section class="card">
+			<label for="exercise">種目</label>
+			<select id="exercise">
+				<option value="ベンチプレス">ベンチプレス</option>
+				<option value="スクワット">スクワット</option>
+				<option value="デッドリフト">デッドリフト</option>
+				<option value="ショルダープレス">ショルダープレス</option>
+				<option value="その他">その他</option>
+			</select>
+
+			<label for="weight">使用重量（kg）</label>
+			<input type="number" id="weight" placeholder="例：80" min="0.1" max="1000" step="0.5">
+
+			<label for="reps">挙げた回数</label>
+			<input type="number" id="reps" placeholder="例：8" min="1" max="100" step="1">
+
+			<button id="calculate">1RMを計算する</button>
+			<p id="error" class="error" role="alert"></p>
+		</section>
+
+		<section class="card result" aria-live="polite">
+			<div class="result-label">ESTIMATED 1RM</div>
+			<div class="result-number" id="result">-- <span class="unit">kg</span></div>
+			<div class="detail" id="resultDetail">重量と回数を入力してください</div>
+		</section>
+
+		<section class="card">
+			<h2>トレーニング重量の目安</h2>
+			<div id="percentageList">
+				<div class="percentage-row"><span>60%</span><strong>-- kg</strong></div>
+				<div class="percentage-row"><span>70%</span><strong>-- kg</strong></div>
+				<div class="percentage-row"><span>75%</span><strong>-- kg</strong></div>
+				<div class="percentage-row"><span>80%</span><strong>-- kg</strong></div>
+				<div class="percentage-row"><span>85%</span><strong>-- kg</strong></div>
+				<div class="percentage-row"><span>90%</span><strong>-- kg</strong></div>
+				<div class="percentage-row"><span>95%</span><strong>-- kg</strong></div>
+			</div>
+		</section>
+
+		<footer>
+			RM CALCULATOR<br>
+			推定値であり、実際の最大重量とは異なる場合があります。
+		</footer>
+	</main>
+
+	<script>
+		const weightInput = document.getElementById("weight");
+		const repsInput = document.getElementById("reps");
+		const exerciseInput = document.getElementById("exercise");
+		const resultElement = document.getElementById("result");
+		const resultDetail = document.getElementById("resultDetail");
+		const percentageList = document.getElementById("percentageList");
+		const errorElement = document.getElementById("error");
+		const calculateButton = document.getElementById("calculate");
+
+		function calculateRM() {
+			const weight = Number(weightInput.value);
+			const reps = Number(repsInput.value);
+			const exercise = exerciseInput.value;
+
+			errorElement.style.display = "none";
+			if (
+				weightInput.value.trim() === "" ||
+				repsInput.value.trim() === "" ||
+				!Number.isFinite(weight) ||
+				!Number.isFinite(reps) ||
+				weight <= 0 ||
+				reps < 1 ||
+				reps > 100 ||
+				!Number.isInteger(reps) ||
+				weight > 1000
+			) {
+				errorElement.textContent = "重量は0より大きく、回数は1〜100の整数で入力してください。";
+				errorElement.style.display = "block";
+				return;
+			}
+
+			// Epley式による推定1RM
+			const oneRM = weight * (1 + reps / 30);
+			resultElement.innerHTML = `${oneRM.toFixed(1)} <span class="unit">kg</span>`;
+			resultDetail.textContent = `${exercise}｜${weight}kg × ${reps}回`;
+
+			const percentages = [60, 70, 75, 80, 85, 90, 95];
+			percentageList.innerHTML = percentages
+				.map(percent => {
+					const targetWeight = oneRM * percent / 100;
+					// 一般的な2.5kg刻みに丸める
+					const roundedWeight = Math.round(targetWeight / 2.5) * 2.5;
+					return `
+						<div class="percentage-row">
+							<span>${percent}%</span>
+							<strong>${roundedWeight.toFixed(1)} kg</strong>
+						</div>
+					`;
+				})
+				.join("");
+		}
+
+		calculateButton.addEventListener("click", calculateRM);
+		[weightInput, repsInput].forEach(input => {
+			input.addEventListener("keydown", event => {
+				if (event.key === "Enter") calculateRM();
+			});
+		});
+	</script>
+</body>
+</html>
